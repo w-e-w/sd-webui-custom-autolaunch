@@ -8,6 +8,7 @@ import os
 
 extension_root = Path(__file__).resolve().parents[1]
 check_command_path = extension_root.joinpath('.check_command')
+custom_command = ''
 
 
 class OptionMarkdown(shared.OptionInfo):
@@ -31,10 +32,12 @@ def confirm_permission():
 
 
 def validate_command_integrity():
+    global custom_command
     try:
         with open(check_command_path, 'r', encoding='utf-8') as file:
             read_check = file.read()
         if read_check[:64] == hashlib.sha256(read_check[64:].encode("utf8")).hexdigest() and read_check[64:] == shared.opts.custom_autolaunch_command:
+            custom_command = read_check[64:]
             return True
     except Exception as e:
         raise CustomAutoLaunch(f'{e}\n[Warning]: custom autolaunch command validation failed due to above reason\nskip executing custom command.')
@@ -66,8 +69,8 @@ shared.options_templates.update(shared.options_section(('system', 'System'), {
 
 def run_custom_launch_command(demo, _app, *_args, **_kwargs):
     try:
-        if shared.opts.custom_autolaunch_command:
-            command = shlex.split(shared.opts.custom_autolaunch_command.format(url=demo.local_url))
+        if custom_command:
+            command = shlex.split(custom_command.format(url=demo.local_url))
             subprocess.Popen(command)
     except Exception as e:
         print(f'{e}\n[ERROR]: Failed custom autolaunch: with command {shared.opts.custom_autolaunch_command}')
